@@ -1,0 +1,6 @@
+duckdb
+pandas
+requests
+python-dotenv
+ipykernel
+importlib
