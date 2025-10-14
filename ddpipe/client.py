@@ -1,7 +1,9 @@
 import os
-import time
 import requests
 import pandas as pd
+from datetime import datetime, timedelta
+import numpy as np
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -128,3 +130,48 @@ class DDClient:
 
         df = pd.DataFrame(rows)
         return df.sort_values("timestamp").reset_index(drop=True)
+
+    def correlate_metrics_logs(
+        self,
+        metric_query: str,
+        log_query: str = "*",
+        until: int = int(time.time()),
+        since: int = int(time.time()) - (3600 * 2),  # default 2 hours back,
+        time_tolerance_sec: int = 60,
+    ):
+        """
+        Correlate metrics and logs over the same time window.
+
+        Args:
+            metric_query: Datadog metric query (e.g., 'avg:system.cpu.user{*} by {host}')
+            log_query: Log search query (e.g., 'service:system')
+            since, until: epoch timestamps (default: last 1h)
+            time_tolerance_sec: max time gap between log and metric samples for merge
+        """
+        metrics_df = self.query_metric(metric_query, since, until)
+        logs_df = self.query_logs(since, until, query=log_query)
+
+        if metrics_df.empty or logs_df.empty:
+            print("One or both datasets are empty.")
+            return pd.DataFrame()
+
+        metrics_df = metrics_df.sort_values("timestamp")
+        logs_df = logs_df.sort_values("timestamp")
+
+        metrics_df["timestamp"] = pd.to_datetime(metrics_df["timestamp"])
+        logs_df["timestamp"] = pd.to_datetime(logs_df["timestamp"])
+
+        # converting from datetime64[ns, UTC] to datetime64[ns] (logs return in UTC)
+        logs_df["timestamp"] = pd.to_datetime(logs_df.timestamp).dt.tz_localize(None)
+
+        # 4️⃣ Merge by nearest timestamp and same host
+        merged = pd.merge_asof(
+            logs_df,
+            metrics_df,
+            on="timestamp",
+            by="host",
+            direction="nearest",
+            tolerance=pd.Timedelta(seconds=time_tolerance_sec),
+        )
+
+        return merged
