@@ -1,7 +1,7 @@
 # DDPipe
 Datadog→Pandas/DuckDB bridge
 
-API for interfacing with Datadog in a Pythonic way. Easy integration with Pandas DataFrames
+API for interfacing with Datadog in a Pythonic way. Turning messy JSON into structured tables - easy integration with Pandas DataFrames (DuckDB coming soon!).
 
 To run the project (locally on Windows):
 

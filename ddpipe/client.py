@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import time
 from dotenv import load_dotenv
-from normalizer import normalize_logs, normalize_metrics
+from .normalizer import normalize_logs, normalize_metrics
 
 load_dotenv()
 
