@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import time
 from dotenv import load_dotenv
+from normalizer import normalize_logs, normalize_metrics
 
 load_dotenv()
 
@@ -188,16 +189,10 @@ class DDClient:
             print("One or both datasets are empty.")
             return pd.DataFrame()
 
-        metrics_df = metrics_df.sort_values("timestamp")
-        logs_df = logs_df.sort_values("timestamp")
+        metrics_df = normalize_metrics(metrics_df)
+        logs_df = normalize_logs(logs_df)
 
-        metrics_df["timestamp"] = pd.to_datetime(metrics_df["timestamp"])
-        logs_df["timestamp"] = pd.to_datetime(logs_df["timestamp"])
-
-        # converting from datetime64[ns, UTC] to datetime64[ns] (logs return in UTC)
-        logs_df["timestamp"] = pd.to_datetime(logs_df.timestamp).dt.tz_localize(None)
-
-        # 4️⃣ Merge by nearest timestamp and same host
+        # Merge by nearest timestamp and same host
         merged = pd.merge_asof(
             logs_df,
             metrics_df,
