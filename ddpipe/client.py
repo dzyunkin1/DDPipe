@@ -10,17 +10,50 @@ load_dotenv()
 
 
 class DDClient:
-    def __init__(self, debug=False):
-        self.api_key = os.getenv("DD_API_KEY")
-        self.app_key = os.getenv("DD_APP_KEY")
-        self.site = os.getenv("DD_SITE", "datadoghq.com")
+    def __init__(
+        self,
+        api_key: str | None = None,
+        app_key: str | None = None,
+        site: str | None = None,
+        debug: bool | None = None,
+        config: dict | None = None,
+    ):
+        """
+        Initialize Datadog client.
+
+        Args:
+            api_key: Datadog API key.
+            app_key: Datadog Application key.
+            site: Datadog site (e.g., datadoghq.com, datadoghq.eu).
+            debug: Enable debug logging.
+            config: Optional dict (from ddpipe.config.load_env()).
+        """
+
+        if config:
+            self.api_key = api_key or config.get("api_key")
+            self.app_key = app_key or config.get("app_key")
+            self.site = site or config.get("site")
+            if debug is None:
+                self.debug = config.get("debug", False)
+        else:
+            self.api_key = api_key or os.getenv("DD_API_KEY")
+            self.app_key = app_key or os.getenv("DD_APP_KEY")
+            self.site = site or os.getenv("DD_SITE", "datadoghq.com")
+            self.debug = (
+                debug
+                if debug is not None
+                else (os.getenv("DD_DEBUG", "false").lower() == "true")
+            )
+
         self.base = f"https://api.{self.site}"
-        self.debug = debug
         self.headers = {
             "DD-API-KEY": self.api_key,
             "DD-APPLICATION-KEY": self.app_key,
             "Content-Type": "application/json",
         }
+
+        if self.debug:
+            print(f"[DDClient] Initialized for site={self.site}")
 
     def query_metric(self, query: str, since: int, until: int) -> pd.DataFrame:
         """Fetch Datadog metrics as a DataFrame"""
